@@ -1,44 +1,24 @@
+// src/components/Navbar.js
 import "./Navbar.css";
-import Logo from "./Images/Logo.png"
+import Logo from "./Images/Logo.png";
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import React from 'react';
+import { useAuth } from './AuthContext';
 
 function Navbar() {
     const navigate = useNavigate();
+    const { logout } = useAuth();
 
-    const handleLogout = async () => {
-        const token = localStorage.getItem('token');
-        console.log('Token retrieved:', token);
-        if (!token) {
-            console.error('No token found');
-            navigate('/login');
-        }
-
-        try {
-            await axios.post(
-                'http://localhost:3000/api/auth/logout',
-                {},
-                {
-                    headers: {
-                        'x-auth-token': token,
-                    }
-                }
-            );
-
-            // Clear the JWT token from localStorage or cookies
-            localStorage.removeItem('token');
-            // Redirect to login page
-            navigate('/login');
-        } catch (error) {
-            console.error('Error during logout:', error);
-            navigate('/login');
-        }
+    const handleLogout = () => {
+        logout();
+        // sessionStorage.clear(); // Clear session storage
+        // localStorage.clear(); // Clear local storage
+        navigate('/login', { replace: true }); // Redirect to login on logout and disable back navigation
     };
+
     const EmployeeForm = () => {
         navigate('/employees');
-        console.log("click");
     };
+
     return (
         <>
             <div className="Container">
@@ -46,18 +26,16 @@ function Navbar() {
                     <img src={Logo} alt="Logo" />
                 </div>
                 <div className="Navbar">
-                    <a href='/dashboard' className="hover-underline-animation">Home</a>
-                    < button type="button" onClick={EmployeeForm} > Create new Employee</button >
-                    <p className="hover-underline-animation">EmployeeName</p>
-                    <button type="button" onClick={handleLogout} >Logout</button>
+                    <button className="hover-underline-animation"><span className="ic--sharp-dashboard"></span>Home</button>
+                    <button type="button" onClick={EmployeeForm}><span className="carbon--new-tab"></span>Create new Employee</button>
+                    {/* <p className="hover-underline-animation">EmployeeName</p> */}
+                    <div className="Logout">
+                        <button type="button" onClick={handleLogout}><span className="mi--log-out"></span>Logout</button>
+                    </div>
                 </div>
-            </div >
+            </div>
         </>
     );
 }
 
 export default Navbar;
-
-
-
-
