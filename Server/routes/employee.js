@@ -1,6 +1,20 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const path = require('path');
 const Employee = require('../models/Employee');
+
+// Set up multer for file uploads
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'uploads/'); // 'uploads' is the directory where files will be saved
+    },
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + path.extname(file.originalname)); // Save file with a timestamp to avoid conflicts
+    }
+});
+
+const upload = multer({ storage: storage });
 
 // Route to fetch all employees
 router.get('/employee', async (req, res) => {
@@ -14,10 +28,9 @@ router.get('/employee', async (req, res) => {
 });
 
 // Route to add a new employee
-router.post('/employee', async (req, res) => {
+router.post('/employee', upload.single('image'), async (req, res) => {
     const {
         unique_employee_id,
-        image,
         name,
         email,
         mobile_no,
@@ -29,7 +42,7 @@ router.post('/employee', async (req, res) => {
     try {
         let newEmployee = new Employee({
             unique_employee_id,
-            image,
+            image: req.file ? req.file.filename : '', // Save filename in the database
             name,
             email,
             mobile_no,
@@ -62,10 +75,9 @@ router.delete('/employee/:id', async (req, res) => {
 });
 
 // Route to update an employee by ID
-router.put('/employee/:id', async (req, res) => {
+router.put('/employee/:id', upload.single('image'), async (req, res) => {
     const {
         unique_employee_id,
-        image,
         name,
         email,
         mobile_no,
@@ -73,6 +85,12 @@ router.put('/employee/:id', async (req, res) => {
         gender,
         course,
     } = req.body;
+
+    // Handle the image file if it's uploaded
+    let image = req.body.image; // Default to the image URL if already stored
+    if (req.file) {
+        image = req.file.filename; // Or req.file.path, depending on how you're storing it
+    }
 
     try {
         const updatedEmployee = await Employee.findByIdAndUpdate(
@@ -85,7 +103,7 @@ router.put('/employee/:id', async (req, res) => {
                 mobile_no,
                 designation,
                 gender,
-                course,
+                course: course.split(','), // If course is a string of comma-separated values
             },
             { new: true }
         );
@@ -99,6 +117,6 @@ router.put('/employee/:id', async (req, res) => {
         console.error('Error updating employee:', err);
         res.status(500).json({ message: 'Server error' });
     }
-});
+}); 
 
 module.exports = router;

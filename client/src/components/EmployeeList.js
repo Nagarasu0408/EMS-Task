@@ -1,5 +1,4 @@
 import "./EmployeeList.css";
-
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
@@ -43,11 +42,15 @@ const EmployeeList = () => {
         }
     };
 
-    const handleEdit = (employee) => {
-        setFormData(employee); // Populate form data with employee details
-        setEditMode(true);
-        setEditId(employee._id);
-    };
+    // const handleEdit = (employee) => {
+    //     setFormData({
+    //         ...employee,
+    //         course: Array.isArray(employee.course) ? employee.course : [],
+    //     });
+    //     setSelectedImage(`http://localhost:3000/uploads/${employee.image}`); // Set existing image for preview
+    //     setEditMode(true);
+    //     setEditId(employee._id);
+    // };
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -65,7 +68,7 @@ const EmployeeList = () => {
                 const reader = new FileReader();
                 reader.onloadend = () => {
                     setSelectedImage(reader.result);
-                    setFormData({ ...formData, image: reader.result });
+                    setFormData({ ...formData, image: file }); // Store the file object
                 };
                 reader.readAsDataURL(file);
             }
@@ -74,27 +77,68 @@ const EmployeeList = () => {
         }
     };
 
+    const handleEdit = (employee) => {
+        setFormData({
+            ...employee,
+            course: Array.isArray(employee.course) ? employee.course : [],
+        });
+        setSelectedImage(`http://localhost:3000/uploads/${employee.image}`); // Set existing image for preview
+        setEditMode(true);
+        setEditId(employee._id);
+        console.log('Editing employee:', employee);
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        const data = new FormData();
+        data.append('unique_employee_id', formData.unique_employee_id);
+        data.append('name', formData.name);
+        data.append('email', formData.email);
+        data.append('mobile_no', formData.mobile_no);
+        data.append('designation', formData.designation);
+        data.append('gender', formData.gender);
+        data.append('course', formData.course.join(',')); // Join courses as a string
+
+        // Only append the image if it's a new one
+        if (formData.image && formData.image !== selectedImage) {
+            data.append('image', formData.image); // Append the file object
+        }
+
+        // Debugging: Log FormData content
+        for (let pair of data.entries()) {
+            console.log(pair[0] + ', ' + pair[1]);
+        }
+
         try {
-            await axios.put(`http://localhost:3000/api/employee/${editId}`, formData);
-            fetchEmployees(); // Refresh employee list after update
-            setEditMode(false);
-            setEditId(null);
-            setFormData({
-                unique_employee_id: '',
-                image: '',
-                name: '',
-                email: '',
-                mobile_no: '',
-                designation: '',
-                gender: '',
-                course: '',
+            const response = await axios.put(`http://localhost:3000/api/employee/${editId}`, data, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
             });
+            if (response.status === 200) {
+                fetchEmployees(); // Refresh employee list after update
+                setEditMode(false);
+                setEditId(null);
+                setFormData({
+                    unique_employee_id: '',
+                    image: '',
+                    name: '',
+                    email: '',
+                    mobile_no: '',
+                    designation: '',
+                    gender: '',
+                    course: [],
+                });
+                setSelectedImage(null);
+            } else {
+                console.error('Error updating employee:', response.data);
+            }
         } catch (error) {
             console.error('Error updating employee:', error);
         }
     };
+
 
     const handleSearch = (e) => {
         setSearchTerm(e.target.value);
@@ -112,7 +156,6 @@ const EmployeeList = () => {
         });
         setEmployees(sortedEmployees);
     };
-    console.log(sortBy);
 
     const filteredEmployees = employees.filter((employee) =>
         Object.values(employee).some(
@@ -136,7 +179,6 @@ const EmployeeList = () => {
                 <div className="Fbtn">
                     <button onClick={() => handleSort('unique_employee_id')}>Sort by ID</button>
                     <button onClick={() => handleSort('name')}>Sort by Name</button>
-                    {/* <button onClick={() => handleSort('email')}>Sort by Email</button> */}
                     <button onClick={() => handleSort('create_date')}>Sort by Date</button>
                 </div>
             </div>
@@ -147,7 +189,7 @@ const EmployeeList = () => {
                         <th>Profile</th>
                         <th>Name</th>
                         <th>Email</th>
-                        <th>Image</th>
+                        <th>Mobile No</th>
                         <th>Designation</th>
                         <th>Gender</th>
                         <th>Qualification</th>
@@ -159,7 +201,7 @@ const EmployeeList = () => {
                     {filteredEmployees.map((employee) => (
                         <tr key={employee._id}>
                             <td>{employee.unique_employee_id}</td>
-                            <td><img src={employee.image} alt='profile' style={{ width: '50px', height: '50px', borderRadius: '100%', border: '2px solid #9C9C9C3A' }} /></td>
+                            <td><img src={`http://localhost:3000/uploads/${employee.image}`} alt='profile' style={{ width: '50px', height: '50px', borderRadius: '100%', border: '2px solid #9C9C9C3A' }} /></td>
                             <td>{employee.name}</td>
                             <td>{employee.email}</td>
                             <td>{employee.mobile_no}</td>
@@ -192,7 +234,6 @@ const EmployeeList = () => {
                             <option value="Manager">Manager</option>
                             <option value="Fresher">Fresher</option>
                         </select>
-                        {/* <input type="text" name="gender" value={formData.gender} onChange={handleChange} placeholder="Gender" /> */}
                         <select name="gender" onChange={handleChange}>
                             <option value={formData.gender}>{formData.gender}</option>
                             <option value="female">Female</option>
@@ -204,34 +245,34 @@ const EmployeeList = () => {
                                 <input
                                     type="checkbox"
                                     name="course"
-                                    value="MCA/"
-                                    checked={formData.course.includes('MCA/')}
+                                    value="MCA"
+                                    checked={formData.course.includes('MCA')}
                                     onChange={handleChange}
                                 />
                                 MCA
-                                <span class="checkmark"></span>
+                                <span className="checkmark"></span>
                             </label>
                             <label className="container">
                                 <input
                                     type="checkbox"
                                     name="course"
-                                    value="BCA/"
-                                    checked={formData.course.includes('BCA/')}
+                                    value="BCA"
+                                    checked={formData.course.includes('BCA')}
                                     onChange={handleChange}
                                 />
                                 BCA
-                                <span class="checkmark"></span>
+                                <span className="checkmark"></span>
                             </label>
                             <label className="container">
                                 <input
                                     type="checkbox"
                                     name="course"
-                                    value="BSC/"
-                                    checked={formData.course.includes('BSC/')}
+                                    value="BSC"
+                                    checked={formData.course.includes('BSC')}
                                     onChange={handleChange}
                                 />
                                 BSC
-                                <span class="checkmark"></span>
+                                <span className="checkmark"></span>
                             </label>
                         </div>
                         <button type="submit">Update Employee</button>

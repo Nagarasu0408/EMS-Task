@@ -2,14 +2,13 @@ const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
-
 const cors = require('cors');
 // Import routes
 const authRoutes = require('./routes/auth');
 const employeeRoutes = require('./routes/employee');
 
 const app = express();
-// app.use(bodyParser.json());
+app.use('/uploads', express.static('uploads'));
 app.use(bodyParser.json({ limit: '50mb' })); //manage the file size
 app.use(cookieParser());
 
